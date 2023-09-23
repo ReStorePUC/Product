@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  product:
+    image: restore/product:latest
+    deploy:
+      replicas: 1
+    networks:
+      main:
+        aliases:
+          - product
+networks:
+  main:
+    external: true
