@@ -2,6 +2,9 @@ package controller
 
 import (
 	"context"
+	"errors"
+	pb "github.com/ReStorePUC/protobucket/generated"
+	"github.com/restore/product/config"
 	"github.com/restore/product/entity"
 	"go.uber.org/zap"
 	"strconv"
@@ -18,17 +21,37 @@ type repository interface {
 }
 
 type Product struct {
-	repo repository
+	repo    repository
+	service pb.UserClient
 }
 
-func NewProduct(r repository) *Product {
+func NewProduct(r repository, s pb.UserClient) *Product {
 	return &Product{
-		repo: r,
+		repo:    r,
+		service: s,
 	}
 }
 
 func (p *Product) Create(ctx context.Context, product *entity.Product) (int, error) {
 	log := zap.NewNop()
+
+	admin := ctx.Value(config.EmailHeader)
+	result, err := p.service.GetUser(ctx, &pb.GetUserRequest{
+		Email: admin.(string),
+	})
+	if err != nil {
+		log.Error(
+			"error getting admin",
+			zap.Error(err),
+		)
+		return 0, err
+	}
+	if !result.IsAdmin {
+		log.Error(
+			"unauthorized action",
+		)
+		return 0, errors.New("unauthorized action")
+	}
 
 	id, err := p.repo.CreateProduct(ctx, product)
 	if err != nil {
@@ -107,6 +130,24 @@ func (p *Product) ListRecent(ctx context.Context) ([]entity.Product, error) {
 
 func (p *Product) Unavailable(ctx context.Context, id string) error {
 	log := zap.NewNop()
+
+	admin := ctx.Value(config.EmailHeader)
+	result, err := p.service.GetUser(ctx, &pb.GetUserRequest{
+		Email: admin.(string),
+	})
+	if err != nil {
+		log.Error(
+			"error getting admin",
+			zap.Error(err),
+		)
+		return err
+	}
+	if !result.IsAdmin {
+		log.Error(
+			"unauthorized action",
+		)
+		return errors.New("unauthorized action")
+	}
 
 	productID, err := strconv.Atoi(id)
 	if err != nil {

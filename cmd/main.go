@@ -1,11 +1,15 @@
 package main
 
 import (
+	pb "github.com/ReStorePUC/protobucket/generated"
 	"github.com/gin-gonic/gin"
 	"github.com/restore/product/config"
 	"github.com/restore/product/controller"
 	"github.com/restore/product/handler"
 	"github.com/restore/product/repository"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"log"
 )
 
 func main() {
@@ -17,8 +21,15 @@ func main() {
 		panic(err)
 	}
 
+	conn, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	c := pb.NewUserClient(conn)
+
 	uRepo := repository.NewProduct(db)
-	uController := controller.NewProduct(uRepo)
+	uController := controller.NewProduct(uRepo, c)
 	uHandler := handler.NewProduct(uController)
 
 	fHandler := handler.NewFile()
