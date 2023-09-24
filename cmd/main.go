@@ -1,7 +1,7 @@
 package main
 
 import (
-	pb "github.com/ReStorePUC/protobucket/generated"
+	pb "github.com/ReStorePUC/protobucket/user"
 	"github.com/gin-gonic/gin"
 	"github.com/restore/product/config"
 	"github.com/restore/product/controller"

@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
-	pb "github.com/ReStorePUC/protobucket/generated"
+	pb "github.com/ReStorePUC/protobucket/user"
 	"github.com/restore/product/config"
 	"github.com/restore/product/entity"
 	"go.uber.org/zap"
