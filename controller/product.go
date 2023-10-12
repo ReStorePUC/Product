@@ -14,7 +14,7 @@ import (
 type repository interface {
 	CreateProduct(ctx context.Context, product *entity.Product) (int, error)
 	GetProduct(ctx context.Context, id int) (*entity.Product, error)
-	ListProduct(ctx context.Context, id int, unavailable bool) ([]entity.Product, error)
+	ListProduct(ctx context.Context, id int, unavailable bool, name string) ([]entity.Product, error)
 	ListRecent(ctx context.Context) ([]entity.Product, error)
 	Unavailable(ctx context.Context, id int) error
 	Search(ctx context.Context, name string, categories []string) ([]entity.Product, error)
@@ -89,7 +89,7 @@ func (p *Product) GetProduct(ctx context.Context, id string) (*entity.Product, e
 	return result, nil
 }
 
-func (p *Product) ListProduct(ctx context.Context, id string, unavailable bool) ([]entity.Product, error) {
+func (p *Product) ListProduct(ctx context.Context, id string, unavailable bool, name string) ([]entity.Product, error) {
 	log := zap.NewNop()
 
 	storeID, err := strconv.Atoi(id)
@@ -101,7 +101,7 @@ func (p *Product) ListProduct(ctx context.Context, id string, unavailable bool) 
 		return nil, err
 	}
 
-	result, err := p.repo.ListProduct(ctx, storeID, unavailable)
+	result, err := p.repo.ListProduct(ctx, storeID, unavailable, name)
 	if err != nil {
 		log.Error(
 			"error to list products",
@@ -148,6 +148,30 @@ func (p *Product) Unavailable(ctx context.Context, id string) error {
 		)
 		return errors.New("unauthorized action")
 	}
+
+	productID, err := strconv.Atoi(id)
+	if err != nil {
+		log.Error(
+			"error validating id",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	err = p.repo.Unavailable(ctx, productID)
+	if err != nil {
+		log.Error(
+			"error to change product status",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	return nil
+}
+
+func (p *Product) UnavailablePayment(ctx context.Context, id string) error {
+	log := zap.NewNop()
 
 	productID, err := strconv.Atoi(id)
 	if err != nil {

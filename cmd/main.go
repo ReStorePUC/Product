@@ -1,7 +1,9 @@
 package main
 
 import (
+	pbProduct "github.com/ReStorePUC/protobucket/product"
 	pb "github.com/ReStorePUC/protobucket/user"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/restore/product/config"
 	"github.com/restore/product/controller"
@@ -10,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"net"
 )
 
 func main() {
@@ -34,14 +37,36 @@ func main() {
 
 	fHandler := handler.NewFile()
 
+	// GRPC
+	go func() {
+		lis, err := net.Listen("tcp", ":50053")
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
+		}
+		s := grpc.NewServer()
+		pbProduct.RegisterProductServer(s, handler.NewProductServer(uController))
+		log.Printf("server listening at %v", lis.Addr())
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
 	router := gin.Default()
+	router.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:     []string{"*"},
+		AllowCredentials: true,
+		AllowFiles:       true,
+	}))
+
 	router.GET("/search", uHandler.Search)
 	router.GET("/product/store/:id", uHandler.ListProduct)
 	router.GET("/product/recent", uHandler.ListRecent)
 	router.GET("/product/:id", uHandler.GetProduct)
 
 	router.POST("/files", fHandler.UploadFiles)
-	router.GET("/file/:file", fHandler.GetFile)
+	router.Static("/view-file/", "./uploads")
 	router.DELETE("/file/:file", fHandler.DeleteFile)
 
 	router.POST("/private/product", uHandler.Create)

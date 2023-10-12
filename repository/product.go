@@ -31,6 +31,15 @@ func (p *Product) GetProduct(ctx context.Context, id int) (*entity.Product, erro
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
+	var images []entity.Image
+	query := p.db.Where("product_id = ?", id)
+	res = query.Find(&images)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	result.Images = images
 	return &result, nil
 }
 
@@ -50,23 +59,49 @@ func (p *Product) Unavailable(ctx context.Context, id int) error {
 	return nil
 }
 
-func (p *Product) ListProduct(ctx context.Context, id int, unavailable bool) ([]entity.Product, error) {
+func (p *Product) ListProduct(ctx context.Context, id int, unavailable bool, name string) ([]entity.Product, error) {
 	var result []entity.Product
 
 	query := p.db.Where("store_id = ? AND available = ?", id, !unavailable)
+	if name != "" {
+		query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(name)+"%")
+	}
 	res := query.Find(&result)
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
+	for i, prod := range result {
+		var images []entity.Image
+		query = p.db.Where("product_id = ?", prod.ID)
+		res = query.Find(&images)
+		if res.Error != nil {
+			return nil, res.Error
+		}
+
+		result[i].Images = images
+	}
+
 	return result, nil
 }
 
 func (p *Product) ListRecent(ctx context.Context) ([]entity.Product, error) {
 	var result []entity.Product
-	res := p.db.Limit(10).Order("id desc").Find(&result)
+	res := p.db.Where("available = TRUE").Limit(10).Order("id desc").Find(&result)
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
+	for i, prod := range result {
+		var images []entity.Image
+		res = p.db.Where("product_id = ?", prod.ID).Find(&images)
+		if res.Error != nil {
+			return nil, res.Error
+		}
+
+		result[i].Images = images
+	}
+
 	return result, nil
 }
 
@@ -88,5 +123,16 @@ func (p *Product) Search(ctx context.Context, name string, categories []string) 
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
+	for i, prod := range result {
+		var images []entity.Image
+		res = p.db.Where("product_id = ?", prod.ID).Find(&images)
+		if res.Error != nil {
+			return nil, res.Error
+		}
+
+		result[i].Images = images
+	}
+
 	return result, nil
 }

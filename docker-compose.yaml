@@ -5,6 +5,8 @@ services:
     image: restore/product:latest
     deploy:
       replicas: 1
+    volumes:
+      - "./uploads:/go/src/uploads"
     networks:
       main:
         aliases:

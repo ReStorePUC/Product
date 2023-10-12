@@ -11,8 +11,9 @@ import (
 type controller interface {
 	Create(ctx context.Context, product *entity.Product) (int, error)
 	Unavailable(ctx context.Context, id string) error
+	UnavailablePayment(ctx context.Context, id string) error
 	GetProduct(ctx context.Context, id string) (*entity.Product, error)
-	ListProduct(ctx context.Context, id string, unavailable bool) ([]entity.Product, error)
+	ListProduct(ctx context.Context, id string, unavailable bool, name string) ([]entity.Product, error)
 	ListRecent(ctx context.Context) ([]entity.Product, error)
 	Search(ctx context.Context, name, categories string) ([]entity.Product, error)
 }
@@ -99,7 +100,7 @@ func (p *Product) ListProduct(c *gin.Context) {
 		unavailable = true
 	}
 
-	result, err := p.controller.ListProduct(c.Request.Context(), id, unavailable)
+	result, err := p.controller.ListProduct(c.Request.Context(), id, unavailable, c.Query("name"))
 	if err != nil {
 		c.IndentedJSON(http.StatusBadRequest, struct {
 			Error string
